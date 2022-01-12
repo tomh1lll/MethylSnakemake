@@ -14,10 +14,12 @@ conda deactivate meth
 
 #### Setting up the working files
 
-Alter the config.yaml so the rawdata_dir is the directory containing all your fastqs.
-Alter the result_dir so it is the working directory containing your snakemake pipeline, where results will be stored.
+Alter the config.yaml so the rawdata_dir is the absolute path of the directory containing all your fastqs.
+Alter the result_dir so it is the absolute path of the working directory containing your snakemake pipeline, where results will be stored.
 
-Within the Snakefile, check that the directory of the samples.txt is correct and that the directory of the working directory is correct.
+Within the Snakefile, check that the absolution path of the samples.txt is correct and that the absolute path of the working directory is correct.
+
+Within pipeline_submit.sh, alter the R variable to the absolute path of your working directory.
 
 #### Dry run of the pipeline
 
