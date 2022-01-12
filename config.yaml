@@ -1,0 +1,10 @@
+
+rawdata_dir: "/data/NHLBIcore/rawdata/NHLBI-4/fastq"
+result_dir: "/data/NHLBIcore/projects/NHLBI-4" 
+hg38_fa: "/data/NHLBIcore/references/Bismark_Genomes/hg38/genome.fa"
+mm10_fa: "/fdb/igenomes/Mus_musculus/UCSC/mm10/Sequence/WholeGenomeFasta/genome.fa"
+rn6_fa: "/fdb/igenomes/Rattus_norvegicus/UCSC/rn6/Sequence/WholeGenomeFasta/genome.fa"
+bisulphite_ref: "/data/NHLBIcore/references/Bismark_Genomes"
+bisulphite_fa: "/fdb/igenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa"
+phage_fa: "/data/NHLBIcore/references/Bismark_Genomes/phage/genome.fa"
+species: "hg38"
