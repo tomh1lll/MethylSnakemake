@@ -5,7 +5,8 @@
 
 #### Setting up the working files
 
-
+Alter the config.yaml so the rawdata_dir is the directory containing all your fastqs.
+Alter the result_dir so it is the working directory containing your snakemake pipeline, where results will be stored.
 
 #### Dry run of the pipeline
 
