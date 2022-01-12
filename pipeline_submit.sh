@@ -54,10 +54,10 @@ CLUSTER_OPTS="sbatch --gres {cluster.gres} --cpus-per-task {cluster.threads} -p 
 
 if [ $1 == "npr" ]
 then
-    snakemake -npr --snakefile $R/Snakefile_20220110 -j 1
+    snakemake -npr --snakefile $R/Snakefile -j 1
 fi
 
 if [ $1 == "process" ]
 then
-    snakemake --latency-wait 120  -s $R/Snakefile_20220110 -d $R --printshellcmds --cluster-config $R/cluster.json --keep-going --restart-times 1 --cluster "$CLUSTER_OPTS" -j 500 --rerun-incomplete --stats $R/reports/snakemake.stats | tee -a $R/reports/snakemake.log
+    snakemake --latency-wait 120  -s $R/Snakefile -d $R --printshellcmds --cluster-config $R/cluster.json --keep-going --restart-times 1 --cluster "$CLUSTER_OPTS" -j 500 --rerun-incomplete --stats $R/reports/snakemake.stats | tee -a $R/reports/snakemake.log
 fi
