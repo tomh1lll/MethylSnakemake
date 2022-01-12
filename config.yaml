@@ -1,4 +1,3 @@
-
 rawdata_dir: "/data/NHLBIcore/rawdata/NHLBI-4/fastq"
 result_dir: "/data/NHLBIcore/projects/NHLBI-4" 
 hg38_fa: "/data/NHLBIcore/references/Bismark_Genomes/hg38/genome.fa"
