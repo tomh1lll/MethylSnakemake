@@ -1,7 +1,16 @@
 
 #### Setting up the working environment
 
+Before running the pipeline, certain packages are required to be installed within a custom conda environment.
 
+```
+module load python
+source /data/$USER/conda/etc/profile.d/conda.sh
+conda create --name meth
+conda activate meth
+mamba install -yc bioconda bwameth methyldackel
+conda deactivate meth
+```
 
 #### Setting up the working files
 
