@@ -280,7 +280,7 @@ rule bwa_meth_dedup:
       """
       module load picard
       mkdir -p {params.dir}
-      java -Xmx20g -XX:ParallelGCThreads={threads} -jar $PICARDJARPATH/picard.jar MarkDuplicatesWithMateCigar -I {input.B1} -O {output.B1} -M {output.M1}
+      java -Xmx20g -XX:ParallelGCThreads={threads} -jar $PICARDJARPATH/picard.jar MarkDuplicatesWithMateCigar -I {input.B1} -O {output.B1} -M {output.M1} --MINIMUM_DISTANCE 200
       samtools flagstat -@ {threads} {output.B1} > {output.B2}
       """
 
