@@ -319,28 +319,11 @@ rule bsseq_inputs:
     dir=working_dir,
     script_dir=join(working_dir,"scripts"),
     p_dir=directory(join(working_dir, "phenofiles")),
-  run:
+  shell:
     """
-    import pandas as pd
-    import os
-
-    path = params.p_dir
-    isExist = os.path.exists(path)
-    if not isExist:
-      os.makedirs(path)
-      print("The new directory is created!")
-
-    df = pd.read_csv(input.G1, header=0, sep='\t')
-
-    df2 = df.loc[df['comp'] == params.groupComp]
-    df2['path'] = df2['sample']
-    df2['path'] = params.dir + "/CpG_bwa/" + df2['path'] + ".bm_pe.deduplicated_CpG.bedGraph"
-    df2.to_csv(output.C1, sep="\t",index=False)
-
-    df3 = df.loc[df['comp'] == params.groupComp]]
-    df3['path'] = df3['sample']
-    df3['path'] = params.dir + "/CpG_bismark/" + df3['path'] + ".bismark_bt2_pe.deduplicated_CpG.bedGraph"
-    df3.to_csv(output.B1, sep="\t",index=False)
+    mkdir -p {params.p_dir}
+    module load python
+    python {params.script_dir}/bbseqInput.py {input.G1} {params.groupComp} {params.dir} {output.C1} {output.B1}
     """
 
 rule bsseq_bwa:
@@ -354,6 +337,7 @@ rule bsseq_bwa:
     rname="bsseq_bwa",
     chr='{chr}',
     dir=directory(join(working_dir, "bsseq_bwa")),
+    script_dir=join(working_dir,"scripts"),
     cov="2",
     sample_prop="0.25",
   threads:
@@ -362,7 +346,7 @@ rule bsseq_bwa:
     """
       module load R
       mkdir -p {params.dir}
-      Rscript bsseq_lm.R {params.chr} {input.bizfile} {output.bsseq} {output.bed} {params.sample_prop} {params.cov}
+      Rscript {params.script_dir}/bsseq_lm.R {params.chr} {input.bizfile} {output.bsseq} {output.bed} {params.sample_prop} {params.cov}
     """
 
 rule combP_bwa:
