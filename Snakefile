@@ -323,7 +323,7 @@ rule bsseq_inputs:
     """
     mkdir -p {params.p_dir}
     module load python
-    python {params.script_dir}/bbseqInput.py {input.G1} {params.groupComp} {params.dir} {output.C1} {output.B1}
+    python {params.script_dir}/bsseqInput.py {input.G1} {params.groupComp} {params.dir} {output.C1} {output.B1}
     """
 
 rule bsseq_bwa:
