@@ -453,7 +453,7 @@ rule bismark_dedup:
       module load bismark/0.23.0
       module load samtools
       deduplicate_bismark --paired --bam --outfile {output.B1} {input.F1}
-      samtools view -h {output.T1} | samtools sort -@ {threads} -o {output.B1}
+      samtools view -hb {output.T1} | samtools sort -@ {threads} -O BAM -o {output.B1}
       """
 
 rule extract_CpG_bismark:
