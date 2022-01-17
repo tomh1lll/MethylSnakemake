@@ -77,7 +77,6 @@ rule All:
       join(bisulphite_genome_path, species, "Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa"),
       # bwa-meth align to human reference genomes
       expand(join(working_dir, "bwaMethAlign/{samples}.bm_pe.flagstat"),samples=SAMPLES),
-      expand(join(working_dir, "bwaMethAlign/{samples}.bm_pe.deduplicated.bam"),samples=SAMPLES),
       expand(join(working_dir, "bwaMethAlign/{samples}.bm_pe.metrics.txt"),samples=SAMPLES),
       expand(join(working_dir, "bwaMethAlign/{samples}.bm_pe.deduplicated.flagstat"),samples=SAMPLES),
       # extract methylation sites
@@ -95,7 +94,6 @@ rule All:
       expand(join(working_dir, "homer_bwa/{group}_{chr}.homerOutput2.txt"),group=GROUPS,chr=CHRS),
       expand(join(working_dir,"homer_bwa/{group}_{chr}.homer.annStats.txt"),group=GROUPS,chr=CHRS),
       # bismark align to human reference genomes
-      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
       expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
       # lm methylation sites from bismark alignments
@@ -268,8 +266,8 @@ rule bwa_meth_dedup:
     input:
       B1=join(working_dir, "bwaMethAlign/{samples}.bm_pe.bam"),
     output:
-      B1=join(working_dir, "bwaMethAlign/{samples}.bm_pe.deduplicated.bam"),
-      M1=join(working_dir, "bwaMethAlign/{samples}.bm_pe.metrics.txt"),
+      B1=temp(join(working_dir, "bwaMethAlign/{samples}.bm_pe.deduplicated.bam")),
+      M1=temp(join(working_dir, "bwaMethAlign/{samples}.bm_pe.metrics.txt")),
       B2=join(working_dir, "bwaMethAlign/{samples}.bm_pe.deduplicated.flagstat"),
     params:
       rname="bwa_meth_dedup",
@@ -304,7 +302,7 @@ rule extract_CpG_bwa_meth:
       source /data/hillts/conda/etc/profile.d/conda.sh
       conda activate meth
       module load samtools/1.9
-      MethylDackel extract --CHH --CHG -o {params.prefix} -@ {threads} {params.genome} {input.F1}
+      MethylDackel extract -o {params.prefix} -@ {threads} {params.genome} {input.F1}
       """
 
 rule bsseq_inputs:
@@ -419,7 +417,7 @@ rule bismark_align:
       F1=join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
       F2=join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
     output:
-      join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
+      temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam")),
     params:
       rname="bismark_align",
       dir=directory(join(working_dir, "bismarkAlign")),
@@ -435,6 +433,8 @@ rule bismark_align:
       mkdir -p {params.dir}
       bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
       mv {params.outbam} {output}
+      rm {params.dir}/{wildcards.samples}*.fq
+      rm {params.dir}/{wildcards.samples}*.fq.gz
       """
 
 rule bismark_dedup:
@@ -475,7 +475,7 @@ rule extract_CpG_bismark:
       mkdir -p {params.dir}
       source /data/hillts/conda/etc/profile.d/conda.sh
       conda activate meth
-      MethylDackel extract --CHH --CHG -o {params.prefix} -@ {threads} {params.genome} {input.F1}
+      MethylDackel extract -o {params.prefix} -@ {threads} {params.genome} {input.F1}
       """
 
 rule bsseq_bismark:
