@@ -307,7 +307,7 @@ rule extract_CpG_bwa_meth:
 
 rule bsseq_inputs:
   input:
-    G1=join(working_dir,"groupings.txt"),
+    G1=join(working_dir,"samples.txt"),
   output:
     C1=join(working_dir,"phenofiles/{group}_bwa.txt"),
     B1=join(working_dir,"phenofiles/{group}_bismark.txt"),
