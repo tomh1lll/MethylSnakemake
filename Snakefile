@@ -433,8 +433,6 @@ rule bismark_align:
       mkdir -p {params.dir}
       bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
       mv {params.outbam} {output}
-      rm {params.dir}/{wildcards.samples}*.fq
-      rm {params.dir}/{wildcards.samples}*.fq.gz
       """
 
 rule bismark_dedup:
