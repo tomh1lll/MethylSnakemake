@@ -351,7 +351,9 @@ rule combP_bwa:
   input:
     join(working_dir, "bsseq_bwa/{group}_{chr}_betas_pval.bed"),
   output:
-    join(working_dir, "combP_bwa/{group}_{chr}.regions-p.bed.gz"),
+    RP=join(working_dir, "combP_bwa/{group}_{chr}.regions-p.bed.gz"),
+    FD=join(working_dir, "combP_bwa/{group}_{chr}.fdr.bed.gz"),
+    RR=join(working_dir, "combP_bwa/{group}_{chr}.regions.bed.gz"),
   params:
     rname="CombP",
     groups='{group}_{chr}',
@@ -366,6 +368,7 @@ rule combP_bwa:
       --region-filter-p 0.05 \
       --region-filter-n 3 \
       {input}
+      comb-p region_p --step 60 -c 5 -p {output.FD} -r {output.RR} > {output.RP}
     """
 
 rule homer_bwa:
@@ -504,7 +507,9 @@ rule combP_bismark:
   input:
     join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),
   output:
-    join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),
+    RP=join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),
+    FD=join(working_dir, "combP_bismark/{group}_{chr}.fdr.bed.gz"),
+    RR=join(working_dir, "combP_bismark/{group}_{chr}.regions.bed.gz"),
   params:
     rname="CombPbis",
     groups='{group}_{chr}',
@@ -519,6 +524,7 @@ rule combP_bismark:
       --region-filter-p 0.05 \
       --region-filter-n 3 \
       {input}
+      comb-p region_p --step 60 -c 5 -p {output.FD} -r {output.RR} > {output.RP}
     """
 
 rule homer_bismark:
