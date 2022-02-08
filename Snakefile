@@ -359,6 +359,7 @@ rule combP_bwa:
   shell:
     """
       mkdir -p {params.dir}
+      module load combp
       comb-p pipeline -c 4 --dist 300 \
       --step 60 --seed 0.01 \
       -p {params.dir}/{params.groups}  \
@@ -511,6 +512,7 @@ rule combP_bismark:
   shell:
     """
       mkdir -p {params.dir}
+      module load combp
       comb-p pipeline -c 4 --dist 300 \
       --step 60 --seed 0.01 \
       -p {params.dir}/{params.groups}  \
