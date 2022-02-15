@@ -21,6 +21,8 @@ Within the Snakefile, check that the absolution path of the samples.txt is corre
 
 Within pipeline_submit.sh, alter the R variable to the absolute path of your working directory.
 
+If you want to run the pipeline exclusively using bwa or bismark, within pipeline_submit.sh, change $R/Snakefile on line 57 and 62 to the appropriate Snakefile.
+
 #### Dry run of the pipeline
 
 To perform a dry run of the pipeline, submit:
