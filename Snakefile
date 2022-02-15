@@ -543,10 +543,10 @@ rule homer_bismark:
     module load homer
     mkdir -p {params.dir}
     cp {params.annStat} {output.homerAnn}
-    zcat {input} | sed "1,1d" | awk "{{print$1"\t"$2"\t"$3"\t"$1"_"$2"_"$3"\t"$4"|"$5"|"$6"|"$7"\t""*"}}" > {output.homerInput}
+    cat {input} | sed "1,1d" | awk '{{print$1"\t"$2"\t"$3"\t"$1"_"$2"_"$3"\t"$4"|"$5"|"$6"|"$7"\t""*"}}' > {output.homerInput}
 
     annotatePeaks.pl {output.homerInput} hg38 -annStats {output.homerAnn} > {output.homerOutput}
 
-    awk "NR==FNR{{a[$4]=$5;next}}NR!=FNR{{c=$1; if(c in a){{print $0"\t"a[c]}}}}" {output.homerInput} {output.homerOutput} > {output.homerOutput2}
+    awk 'NR==FNR{{a[$4]=$5;next}}NR!=FNR{{c=$1; if(c in a){{print $0"\t"a[c]}}}}' {output.homerInput} {output.homerOutput} > {output.homerOutput2}
 
     """
