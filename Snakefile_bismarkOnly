@@ -290,6 +290,7 @@ rule extract_CpG_bismark:
       source /data/hillts/conda/etc/profile.d/conda.sh
       conda activate meth
       module load samtools/1.9
+      MethylDackel mbias -@ {threads} {params.genome} {input.F1} {params.prefix}
       MethylDackel extract -o {params.prefix} -@ {threads} {params.genome} {input.F1}
       """
 
