@@ -329,12 +329,14 @@ rule combP_bismark:
     rname="CombPbis",
     groups='{group}_{chr}',
     dir=join(working_dir, "combP_bismark"),
+    dist="300",
+    step="60",
   shell:
     """
       mkdir -p {params.dir}
       module load combp bedtools
-      comb-p pipeline -c 4 --dist 300 \
-      --step 60 --seed 0.01 \
+      comb-p pipeline -c 4 --dist {params.dist} \
+      --step {params.step} --seed 0.01 \
       -p {params.dir}/{params.groups}  \
       --region-filter-p 0.05 \
       --region-filter-n 3 \
