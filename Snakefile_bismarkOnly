@@ -391,14 +391,15 @@ rule manhatten:
   input:
     expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
   output:
-    LIST=join(working_dir,"bsseq_bismark/{group}.list"),
-    MAN=join(working_dir,"bsseq_bismark/{group}_manhatten.png"),
+    LIST=join(working_dir,"figs_bismark/{group}.list"),
+    MAN=join(working_dir,"figs_bismark/{group}_manhatten.png"),
   params:
-    dir=join(working_dir, "bsseq_bismark"),
+    dir=join(working_dir, "figs_bismark"),
     rname="manhatten",
   shell:
     """
+      mkdir -p {params.dir}
       ls {params.dir}/{wildcards.group}_*_betas_pval.bed > {output.LIST}
       module load R
-      Rscript bsseq_Manhatten.R {output.LIST} {output.MAN}
+      Rscript {params.script_dir}/bsseq_Manhatten.R {output.LIST} {output.MAN}
     """
