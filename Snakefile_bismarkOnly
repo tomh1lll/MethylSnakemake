@@ -90,6 +90,8 @@ rule All:
       expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p2.bed.gz"),chr=CHRS,group=GROUPS),
+      # summary figures of analysis
+      expand(join(working_dir,"bsseq_bismark/{group}_manhatten.png"),group=GROUPS),
     output:
       "multiqc_report.html"
 
@@ -371,6 +373,7 @@ rule homer_bismark:
     homerAnn=join(working_dir,"homer_bismark/{group}_{chr}.homer.annStats.txt"),
   params:
     dir=join(working_dir, "homer_bismark"),
+    rname="homerBis",
     annStat=join(working_dir,"homer_bismark/blank.homer.annStats.txt"),
   shell:
     """
@@ -380,4 +383,20 @@ rule homer_bismark:
     cat {input} | sed "1,1d" | awk '{{print$1"\t"$2"\t"$3"\t"$1"_"$2"_"$3"\t"$4"|"$5"|"$6"|"$7"\t""*"}}' > {output.homerInput}
     annotatePeaks.pl {output.homerInput} hg38 -annStats {output.homerAnn} > {output.homerOutput}
     awk 'NR==FNR{{a[$4]=$5;next}}NR!=FNR{{c=$1; if(c in a){{print $0"\t"a[c]}}}}' {output.homerInput} {output.homerOutput} > {output.homerOutput2}
+    """
+
+rule manhatten:
+  input:
+    expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
+  output:
+    LIST=join(working_dir,"bsseq_bismark/{group}.list"),
+    MAN=join(working_dir,"bsseq_bismark/{group}_manhatten.png"),
+  params:
+    dir=join(working_dir, "bsseq_bismark"),
+    rname="manhatten",
+  shell:
+    """
+      ls {params.dir}/{wildcards.group}_*_betas_pval.bed > {output.LIST}
+      module load R
+      Rscript bsseq_Manhatten.R {output.LIST} {output.MAN}
     """
