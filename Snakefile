@@ -85,7 +85,6 @@ rule All:
       expand(join(working_dir, "phenofiles/{group}_bismark.txt"),group=GROUPS),
       expand(join(working_dir, "phenofiles/{group}_bwa.txt"),group=GROUPS),
       # lm methylation sites from bwa alignments
-      expand(join(working_dir, "bsseq_bwa/{group}_{chr}_lm.txt"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "bsseq_bwa/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bwa/{group}_{chr}.regions-p.bed.gz"),group=GROUPS,chr=CHRS),
       #homer files
@@ -97,7 +96,6 @@ rule All:
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
       expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
       # lm methylation sites from bismark alignments
-      expand(join(working_dir, "bsseq_bismark/{group}_{chr}_lm.txt"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),chr=CHRS,group=GROUPS),
     output:
@@ -329,7 +327,6 @@ rule bsseq_bwa:
     bizfile=join(working_dir,"phenofiles/{group}_bwa.txt"),
     B1=expand(join(working_dir, "CpG_bwa/{samples}.bm_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
   output:
-    bsseq=join(working_dir, "bsseq_bwa/{group}_{chr}_lm.txt"),
     bed=join(working_dir, "bsseq_bwa/{group}_{chr}_betas_pval.bed"),
   params:
     rname="bsseq_bwa",
@@ -344,7 +341,7 @@ rule bsseq_bwa:
     """
       module load R
       mkdir -p {params.dir}
-      Rscript {params.script_dir}/bsseq_lm.R {params.chr} {input.bizfile} {output.bsseq} {output.bed} {params.sample_prop} {params.cov}
+      Rscript {params.script_dir}/bsseq_lm.R {params.chr} {input.bizfile} {output.bed} {params.sample_prop} {params.cov}
     """
 
 rule combP_bwa:
@@ -486,7 +483,6 @@ rule bsseq_bismark:
     B1=expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
     bizfile=join(working_dir,"phenofiles/{group}_bismark.txt"),
   output:
-    bsseq=join(working_dir, "bsseq_bismark/{group}_{chr}_lm.txt"),
     bed=join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),
   params:
     rname="bsseq_bismark",
@@ -500,7 +496,7 @@ rule bsseq_bismark:
     """
       module load R
       mkdir -p {params.dir}
-      Rscript bsseq_lm.R {params.chr} {input.bizfile} {output.bsseq} {output.bed} {params.sample_prop} {params.cov}
+      Rscript bsseq_lm.R {params.chr} {input.bizfile} {output.bed} {params.sample_prop} {params.cov}
     """
 
 rule combP_bismark:
