@@ -490,13 +490,14 @@ rule bsseq_bismark:
     dir=directory(join(working_dir, "bsseq_bismark")),
     cov="2",
     sample_prop="0.25",
+    script_dir=join(working_dir,"scripts"),
   threads:
     4
   shell:
     """
       module load R
       mkdir -p {params.dir}
-      Rscript bsseq_lm.R {params.chr} {input.bizfile} {output.bed} {params.sample_prop} {params.cov}
+      Rscript {params.script_dir}/bsseq_lm.R {params.chr} {input.bizfile} {output.bed} {params.sample_prop} {params.cov}
     """
 
 rule combP_bismark:
