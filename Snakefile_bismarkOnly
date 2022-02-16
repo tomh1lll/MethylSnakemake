@@ -297,7 +297,6 @@ rule bsseq_bismark:
     B1=expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
     bizfile=join(working_dir,"phenofiles/{group}_bismark.txt"),
   output:
-    bsseq=join(working_dir, "bsseq_bismark/{group}_{chr}_lm.txt"),
     bed=join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),
   params:
     rname="bsseq_bismark",
@@ -311,7 +310,7 @@ rule bsseq_bismark:
     """
       module load R
       mkdir -p {params.dir}
-      Rscript bsseq_lm.R {params.chr} {input.bizfile} {output.bsseq} {output.bed} {params.sample_prop} {params.cov}
+      Rscript bsseq_lm.R {params.chr} {input.bizfile} {output.bed} {params.sample_prop} {params.cov}
     """
 
 rule combP_bismark:
