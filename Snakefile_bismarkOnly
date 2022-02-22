@@ -91,7 +91,7 @@ rule All:
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p2.bed.gz"),chr=CHRS,group=GROUPS),
       # summary figures of analysis
-      expand(join(working_dir,"bsseq_bismark/{group}_manhatten.png"),group=GROUPS),
+      expand(join(working_dir,"figs_bismark/{group}_manhatten.png"),group=GROUPS),
     output:
       "multiqc_report.html"
 
@@ -346,8 +346,7 @@ rule combP_bismark:
 
 rule combP_bismark2:
   input:
-    FD=join(working_dir, "combP_bismark/{group}_{chr}.fdr.bed.gz"),
-    RR=join(working_dir, "combP_bismark/{group}_{chr}.regions.bed.gz"),
+    RP=join(working_dir, "combP_bismark/{group}_{chr}.regions-p2.bed.gz"),
   output:
     RP=join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),
   params:
@@ -361,13 +360,13 @@ rule combP_bismark2:
     """
       mkdir -p {params.dir}
       module load combp bedtools
-      comb-p region_p --step 60 -c 5 -p {input.FD} -r {input.RR} > {params.RP}
+      comb-p region_p --step 60 -c 5 -p {params.FD} -r {params.RR} > {params.RP}
       cp {params.RP} {output.RP}
     """
 
 rule homer_bismark:
   input:
-    join(working_dir, "combP_bismark/{group}_{chr}.regions-p2A.bed.gz"),
+    join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),
   output:
     homerInput=join(working_dir, "homer_bismark/{group}_{chr}.homerInput.txt"),
     homerOutput=join(working_dir, "homer_bismark/{group}_{chr}.homerOutput.txt"),
