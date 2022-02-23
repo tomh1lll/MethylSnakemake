@@ -86,6 +86,7 @@ rule All:
       expand(join(working_dir, "homer_bismark/{group}_{chr}.homerOutput2.txt"),group=GROUPS,chr=CHRS),
       expand(join(working_dir,"homer_bismark/{group}_{chr}.homer.annStats.txt"),group=GROUPS,chr=CHRS),
       # bismark align to human reference genomes
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
       expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
       # lm methylation sites from bismark alignments
@@ -274,7 +275,7 @@ rule bismark_align:
       F1=join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
       F2=join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
     output:
-      temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam")),
+      join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
     params:
       rname="bismark_align",
       dir=directory(join(working_dir, "bismarkAlign")),
