@@ -191,14 +191,12 @@ rule trimGalore:
       trim_galore --paired --cores {threads} {params.command} --basename {params.tag} --output_dir {params.dir} --fastqc_args "--outdir {params.fastqcdir}"  {input.F1} {input.F2}
       """
 
-## Run fastqc on filtered/trimmed data to visually assess quality
-rule trim_fastqc:
+## Run fastqc on filtered/trimmed data to visually assess quality for R1
+rule trim_fastqc1:
     input:
-      F1=join(working_dir, "trimGalore/{samples}_val_1.fastq.gz"),
-      F2=join(working_dir, "trimGalore/{samples}_val_2.fastq.gz"),
+      join(working_dir, "trimGalore/{samples}_val_1.fastq.gz"),
     output:
-      O1=join(working_dir, "trimQC/{samples}_val_1_fastqc.html"),
-      O2=join(working_dir, "trimQC/{samples}_val_2_fastqc.html"),
+      join(working_dir, "trimQC/{samples}_val_1_fastqc.html"),
     params:
       rname="trim_fastqc",
       dir=directory(join(working_dir, "trimQC")),
@@ -209,8 +207,26 @@ rule trim_fastqc:
       """
       module load fastqc/0.11.9
       mkdir -p {params.dir}
-      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input.F1}
-      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input.F2}
+      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input}
+      """
+
+## Run fastqc on filtered/trimmed data to visually assess quality for R2
+rule trim_fastqc2:
+    input:
+      join(working_dir, "trimGalore/{samples}_val_2.fastq.gz"),
+    output:
+      join(working_dir, "trimQC/{samples}_val_2_fastqc.html"),
+    params:
+      rname="trim_fastqc",
+      dir=directory(join(working_dir, "trimQC")),
+      batch='--cpus-per-task=2 --mem=8g --time=8:00:00',
+    threads:
+      2
+    shell:
+      """
+      module load fastqc/0.11.9
+      mkdir -p {params.dir}
+      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input}
       """
 
 rule bsseq_inputs:
