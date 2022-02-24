@@ -97,19 +97,7 @@ rule All:
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p2.bed.gz"),chr=CHRS,group=GROUPS),
       # summary figures of analysis
       expand(join(working_dir,"figs_bismark/{group}_manhatten.png"),group=GROUPS),
-    output:
-      "multiqc_report.html"
-
-    params:
-      projname="MethylSeq",
-      dir=directory(join(working_dir,"multiqc")),
-    shell:
-      """
-      module load multiqc/1.8
-      mkdir -p {params.dir}
-      cd working_dir
-      multiqc -d . --data-dir {params.dir}
-      """
+      "multiqc_report.html",
 
 ## Copy raw data to working directory
 rule raw_data_links:
@@ -448,4 +436,23 @@ rule manhatten:
       ls {params.dir}/{wildcards.group}_*_betas_pval.bed > {output.LIST}
       module load R
       Rscript {params.script_dir}/bsseq_Manhatten.R {output.LIST} {output.MAN}
+    """
+
+rule multiqc:
+  input:
+    expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
+    expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
+  output:
+    "multiqc_report.html",
+  params:
+    dir=working_dir,
+    bis_dir=directory(join(working_dir,"bismarkAlign")),
+  shell:
+    """
+    module load multiqc/1.9 bismark
+    cd {params.bis_dir}
+    bismark2report
+    bismark2summary
+    cd {params.dir}
+    multiqc -d .
     """
