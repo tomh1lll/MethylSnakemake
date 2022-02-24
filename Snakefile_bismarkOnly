@@ -87,8 +87,10 @@ rule All:
       expand(join(working_dir,"homer_bismark/{group}_{chr}.homer.annStats.txt"),group=GROUPS,chr=CHRS),
       # bismark align to human reference genomes
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.flagstat"),samples=SAMPLES),
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
       expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.flagstat"),samples=SAMPLES),
       # lm methylation sites from bismark alignments
       expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),chr=CHRS,group=GROUPS),
@@ -275,7 +277,8 @@ rule bismark_align:
       F1=join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
       F2=join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
     output:
-      join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
+      B1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
+      B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.flagstat"),
     params:
       rname="bismark_align",
       dir=directory(join(working_dir, "bismarkAlign")),
@@ -287,10 +290,11 @@ rule bismark_align:
       16
     shell:
       """
-      module load bismark/0.23.0
+      module load bismark/0.23.0 samtools
       mkdir -p {params.dir}
       bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
       mv {params.outbam} {output}
+      samtools flagstat -@ {threads} {output.B1} > {output.B2}
       """
 
 rule bismark_dedup:
@@ -299,6 +303,7 @@ rule bismark_dedup:
     output:
       T1=temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.deduplicated.bam")),
       B1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),
+      B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.flagstat"),
     params:
       rname="bismark_dedup",
       dir=directory(join(working_dir, "bismarkAlign")),
@@ -311,6 +316,7 @@ rule bismark_dedup:
       cd {params.dir}
       deduplicate_bismark --paired --bam --outfile {output.B1} {input.F1}
       samtools view -hb {output.T1} | samtools sort -@ {threads} -O BAM -o {output.B1}
+      samtools flagstat -@ {threads} {output.B1} > {output.B2}
       """
 
 rule extract_CpG_bismark:
