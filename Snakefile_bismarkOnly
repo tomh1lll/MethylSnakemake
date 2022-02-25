@@ -88,8 +88,8 @@ rule All:
       # bismark align to human reference genomes
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.flagstat"),samples=SAMPLES),
-      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
-      expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),samples=SAMPLES),
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.cram"),samples=SAMPLES),
+      expand(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph.gz"),samples=SAMPLES),
       expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.flagstat"),samples=SAMPLES),
       # lm methylation sites from bismark alignments
       expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
@@ -290,7 +290,7 @@ rule bismark_dedup:
       F1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
     output:
       T1=temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.deduplicated.bam")),
-      B1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),
+      B1=temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam")),
       B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.flagstat"),
     params:
       rname="bismark_dedup",
@@ -311,7 +311,7 @@ rule extract_CpG_bismark:
     input:
       F1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),
     output:
-      B1=join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),
+      B1=temp(join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph")),
     params:
       rname="extract_CpG_bismark",
       dir=directory(join(working_dir, "CpG_bismark")),
@@ -330,6 +330,33 @@ rule extract_CpG_bismark:
       MethylDackel mbias -@ {threads} {params.genome} {input.F1} {params.prefix}
       MethylDackel extract -o {params.prefix} -@ {threads} {params.genome} {input.F1}
       """
+
+rule cleanup_bams:
+  input:
+    B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),
+    G1=join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph"),
+  output:
+    C2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.cram"),
+    G1=join(working_dir, "CpG_bismark/{samples}.bismark_bt2_pe.deduplicated_CpG.bedGraph.gz"),
+  params:
+    rname="cleanup_bams",
+    genome=hg38_fa,
+    FQ1=join(working_dir, "bismarkAlign/{samples}_val_1.fq.gz_unmapped_reads_1.fq.gz"),
+    FQ2=join(working_dir, "bismarkAlign/{samples}_val_2.fq.gz_unmapped_reads_2.fq.gz"),
+    FQ3=join(working_dir, "bismarkAlign/{samples}_val_1.fq.gz_ambiguous_reads_1.fq.gz"),
+    FQ4=join(working_dir, "bismarkAlign/{samples}_val_2.fq.gz_ambiguous_reads_2.fq.gz"),
+  threads:
+    8
+  shell:
+    """
+      module load samtools
+      samtools -h -C -@ {threads} -T {params.genome} {input.B2} > {output.C2}
+      rm {params.FQ1}
+      rm {params.FQ2}
+      rm {params.FQ3}
+      rm {params.FQ4}
+      gzip -9 -c {input.G1} > {output.G1}
+    """
 
 rule bsseq_bismark:
   input:
