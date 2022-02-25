@@ -96,7 +96,7 @@ rule All:
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p.bed.gz"),chr=CHRS,group=GROUPS),
       expand(join(working_dir, "combP_bismark/{group}_{chr}.regions-p2.bed.gz"),chr=CHRS,group=GROUPS),
       # summary figures of analysis
-      expand(join(working_dir,"figs_bismark/{group}_manhatten.png"),group=GROUPS),
+      expand(join(working_dir,"figs/{group}_manhatten.png"),group=GROUPS),
       "multiqc_report.html",
 
 ## Copy raw data to working directory
@@ -185,7 +185,7 @@ rule trimGalore:
 ## Run fastqc on filtered/trimmed data to visually assess quality for R1
 rule trim_fastqc1:
     input:
-      join(working_dir, "trimGalore/{samples}_val_1.fastq.gz"),
+      join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
     output:
       join(working_dir, "trimQC/{samples}_val_1_fastqc.html"),
     params:
@@ -204,7 +204,7 @@ rule trim_fastqc1:
 ## Run fastqc on filtered/trimmed data to visually assess quality for R2
 rule trim_fastqc2:
     input:
-      join(working_dir, "trimGalore/{samples}_val_2.fastq.gz"),
+      join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
     output:
       join(working_dir, "trimQC/{samples}_val_2_fastqc.html"),
     params:
@@ -452,11 +452,12 @@ rule manhatten:
   input:
     expand(join(working_dir, "bsseq_bismark/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
   output:
-    LIST=join(working_dir,"figs_bismark/{group}.list"),
-    MAN=join(working_dir,"figs_bismark/{group}_manhatten.png"),
+    LIST=join(working_dir,"figs/{group}.list"),
+    MAN=join(working_dir,"figs/{group}_manhatten.png"),
   params:
-    dir=join(working_dir, "figs_bismark"),
+    dir=join(working_dir, "figs"),
     rname="manhatten",
+    script_dir=join(working_dir,"scripts"),
   shell:
     """
       mkdir -p {params.dir}
@@ -474,6 +475,7 @@ rule multiqc:
   params:
     dir=working_dir,
     bis_dir=directory(join(working_dir,"bismarkAlign")),
+    script_dir=join(working_dir,"scripts"),
   shell:
     """
     module load multiqc/1.9 bismark
@@ -481,5 +483,5 @@ rule multiqc:
     bismark2report
     bismark2summary
     cd {params.dir}
-    multiqc -d .
+    multiqc --ignore '*/.singularity/*' -f --interactive .
     """
