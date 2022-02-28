@@ -1,0 +1,390 @@
+###########################################################################
+# Bisulphite sequencing (methylseq) analysis workflow
+#
+# This pipeline is adapted from current methyseq pipeline from BCB core
+# This pipeline focuses on the second set of steps,
+# Creator: Neelam Redekar, neelam.redekar@nih.gov
+# Created: December 21, 2021
+# Modifier: Tom Hill, tom.hill@nih.gov
+# Modified: February 16, 2022
+#
+###########################################################################
+
+from os.path import join
+from snakemake.io import expand, glob_wildcards
+from snakemake.utils import R
+from os import listdir
+import pandas as pd
+
+#configfile: "/data/NHLBIcore/projects/NHLBI-16/MethylSnakemake2/config.yaml"
+#df = pd.read_csv("/data/NHLBIcore/projects/NHLBI-16/MethylSnakemake/samples.txt", header=0, sep='\t')
+
+##
+## Locations of working directories and reference genomes for analysis
+##
+sample_file= config["samples"]
+rawdata_dir= config["rawdata_dir"]
+working_dir= config["result_dir"]
+hg38_fa= config["hg38_fa"]
+phage_fa= config["phage_fa"]
+bisulphite_genome_path= config["bisulphite_ref"]
+phage_genome_path= config["phage_ref"]
+bisulphite_fa= config["bisulphite_fa"]
+species= config["species"]
+
+##
+## Read in the masterkey file for 3 tab-delimited columns of samples, groups and comparison
+## Each sample can be in the file multiple times if used in multiple comparisons, but will only be mapped/process once.
+##
+## e.g.
+##
+##sample	group	comp
+##S1	GA	GAvsGB
+##S2	GA	GAvsGB
+##S3	GB	GAvsGB
+##S4	GB	GAvsGB
+##S5	GC	GAvsGC
+##S6	GC	GAvsGC
+##S1	GA	GAvsGC
+##S2	GA	GAvsGC
+
+## The file requires these headings as they are used in multiple rules later on.
+
+## Here we read in the samples file generated and begin processing the data, printing out the samples and group comparisons
+
+df = pd.read_csv(sample_file, header=0, sep='\t')
+
+SAMPLES=list(set(df['sample'].tolist()))
+GROUPS=list(set(df['comp'].tolist()))
+
+print(SAMPLES)
+print(len(SAMPLES))
+print(GROUPS)
+print(len(GROUPS))
+
+CHRS = ['chr1','chr2','chr3','chr4','chr5','chr6','chr7','chr8','chr9','chr10','chr11','chr12','chr13','chr14','chr15','chr16','chr17','chr18','chr19','chr20','chr21','chr22','chr23','chrX']
+
+RN = ['R1', 'R2']
+
+rule All:
+    input:
+      # Creating data links:
+      expand(join(working_dir, "raw/{samples}.{rn}.fastq.gz"), samples=SAMPLES, rn=RN),
+      # Checking data quality:
+      expand(join(working_dir, "rawQC/{samples}.{rn}_fastqc.html"), samples=SAMPLES, rn=RN),
+      expand(join(working_dir, "trimQC/{samples}_val_1_fastqc.html"), samples=SAMPLES),
+      expand(join(working_dir, "trimQC/{samples}_val_2_fastqc.html"), samples=SAMPLES),
+      # Quality trimming output:
+      expand(join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),samples=SAMPLES),
+      expand(join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),samples=SAMPLES),
+      # bisulphite genome preparation
+      join(bisulphite_genome_path, species, "Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"),
+      join(bisulphite_genome_path, species, "Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa"),
+      # bismark align to human reference genomes
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.flagstat"),samples=SAMPLES),
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.cram"),samples=SAMPLES),
+      expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.flagstat"),samples=SAMPLES),
+      # extract CpG profile with methyldackel
+      expand(join(working_dir, "CpG/{samples}.bedGraph"),samples=SAMPLES),
+      "multiqc_report.html",
+
+## Copy raw data to working directory
+rule raw_data_links:
+    input:
+      join(rawdata_dir, "{samples}.{rn}.fastq.gz")
+    output:
+      join(working_dir, "raw/{samples}.{rn}.fastq.gz")
+    params:
+      rname="raw_data_links",
+      dir=directory(join(working_dir, "raw")),
+    shell:
+      """
+      mkdir -p {params.dir}
+      ln -s {input} {output}
+      """
+
+## Run fastqc on raw data to visually assess quality
+rule raw_fastqc:
+    input:
+      join(working_dir, "raw/{samples}.{rn}.fastq.gz")
+    output:
+      join(working_dir, "rawQC/{samples}.{rn}_fastqc.html")
+    params:
+      rname="raw_fastqc",
+      dir=directory(join(working_dir, "rawQC")),
+      batch='--cpus-per-task=2 --mem=8g --time=8:00:00',
+    threads:
+      2
+    shell:
+      """
+      module load fastqc/0.11.9
+      mkdir -p {params.dir}
+      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input}
+      """
+
+## Trim raw data
+rule trimmomatic:
+    input:
+      F1=join(working_dir, "raw/{samples}.R1.fastq.gz"),
+      F2=join(working_dir, "raw/{samples}.R2.fastq.gz"),
+    output:
+      PE1=temp(join(working_dir, "trimmed_reads/{samples}.R1.pe.fastq.gz")),
+      UPE1=temp(join(working_dir, "trimmed_reads/{samples}.R1.ue.fastq.gz")),
+      PE2=temp(join(working_dir, "trimmed_reads/{samples}.R2.pe.fastq.gz")),
+      UPE2=temp(join(working_dir, "trimmed_reads/{samples}.R2.ue.fastq.gz"))
+    params:
+      rname="trimmomatic",
+      dir=directory(join(working_dir, "trimmed_reads")),
+      batch='--cpus-per-task=8 --partition=norm --gres=lscratch:180 --mem=25g --time=20:00:00',
+      command='ILLUMINACLIP:/usr/local/apps/trimmomatic/Trimmomatic-0.39/adapters/TruSeq3-PE-2.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:50'
+    threads:
+      8
+    shell:
+      """
+      module load trimmomatic/0.39
+      mkdir -p {params.dir}
+      java -jar $TRIMMOJAR PE -phred33 -threads {threads} {input.F1} {input.F2} {output.PE1} {output.UPE1} {output.PE2} {output.UPE2} {params.command}
+      """
+
+## Second round of trimming/filtering
+rule trimGalore:
+    input:
+      F1=join(working_dir, "trimmed_reads/{samples}.R1.pe.fastq.gz"),
+      F2=join(working_dir, "trimmed_reads/{samples}.R2.pe.fastq.gz"),
+    output:
+      join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
+      join(working_dir, "trimGalore/{samples}_val_2.fq.gz")
+    params:
+      rname="trimGalore",
+      dir=directory(join(working_dir, "trimGalore")),
+      tag='{samples}',
+      fastqcdir=directory(join(working_dir, "postTrimQC")),
+      command="--fastqc --clip_R1 10 --clip_R2 10 --three_prime_clip_R1 10 --three_prime_clip_R2 10 --length 50 --gzip",
+      batch='--cpus-per-task=16 --partition=norm --gres=lscratch:100 --mem=25g --time=10:00:00',
+    threads:
+      16
+    shell:
+      """
+      module load trimgalore/0.6.7
+      module load fastqc/0.11.9
+      mkdir -p {params.dir}
+      trim_galore --paired --cores {threads} {params.command} --basename {params.tag} --output_dir {params.dir} --fastqc_args "--outdir {params.fastqcdir}"  {input.F1} {input.F2}
+      """
+
+## Run fastqc on filtered/trimmed data to visually assess quality for R1
+rule trim_fastqc1:
+    input:
+      join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
+    output:
+      join(working_dir, "trimQC/{samples}_val_1_fastqc.html"),
+    params:
+      rname="trim_fastqc",
+      dir=directory(join(working_dir, "trimQC")),
+      batch='--cpus-per-task=2 --mem=8g --time=8:00:00',
+    threads:
+      2
+    shell:
+      """
+      module load fastqc/0.11.9
+      mkdir -p {params.dir}
+      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input}
+      """
+
+## Run fastqc on filtered/trimmed data to visually assess quality for R2
+rule trim_fastqc2:
+    input:
+      join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
+    output:
+      join(working_dir, "trimQC/{samples}_val_2_fastqc.html"),
+    params:
+      rname="trim_fastqc",
+      dir=directory(join(working_dir, "trimQC")),
+      batch='--cpus-per-task=2 --mem=8g --time=8:00:00',
+    threads:
+      2
+    shell:
+      """
+      module load fastqc/0.11.9
+      mkdir -p {params.dir}
+      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input}
+      """
+
+rule prep_bisulphite_genome:
+    input:
+      bisulphite_fa
+    output:
+      join(bisulphite_genome_path, species, "Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"),
+      join(bisulphite_genome_path, species, "Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa"),
+    params:
+      rname="prep_bisulphite_genome",
+      dir=directory(join(bisulphite_genome_path, species)),
+      batch='--cpus-per-task=16 --partition=norm --gres=lscratch:100 --mem=20g --time=2:00:00',
+    threads:
+      16
+    shell:
+      """
+      module load bismark/0.23.0
+      mkdir -p {params.dir}
+      cd {params.dir}
+      #cp reference_genome {params.dir}/genome.fa
+      bismark_genome_preparation --verbose --parallel {threads} {params.dir} #--single_fasta
+      """
+
+rule bismark_align:
+    input:
+      F1=join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
+      F2=join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
+    output:
+      B1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
+      B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.flagstat"),
+    params:
+      rname="bismark_align",
+      dir=directory(join(working_dir, "bismarkAlign")),
+      genome_dir=directory(join(bisulphite_genome_path, species)),
+      command="--bowtie2 -N 1 --bam -L 22 --X 1000 --un --ambiguous -p 4 --score_min L,-0.6,-0.6",
+      batch='--cpus-per-task=16 --partition=norm --gres=lscratch:100 --mem=100g --time=10:00:00',
+      outbam=join(working_dir, "bismarkAlign/{samples}_val_1_bismark_bt2_pe.bam"),
+    threads:
+      16
+    shell:
+      """
+      module load bismark/0.23.0 samtools
+      mkdir -p {params.dir}
+      bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
+      mv {params.outbam} {output}
+      samtools flagstat -@ {threads} {output.B1} > {output.B2}
+      """
+
+rule bismark_dedup:
+    input:
+      F1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),
+    output:
+      T1=temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.deduplicated.bam")),
+      B1=temp(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam")),
+      B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.flagstat"),
+    params:
+      rname="bismark_dedup",
+      dir=directory(join(working_dir, "bismarkAlign")),
+    threads:
+      16
+    shell:
+      """
+      module load bismark/0.23.0
+      module load samtools
+      cd {params.dir}
+      deduplicate_bismark --paired --bam --outfile {output.B1} {input.F1}
+      samtools view -hb {output.T1} | samtools sort -@ {threads} -O BAM -o {output.B1}
+      samtools flagstat -@ {threads} {output.B1} > {output.B2}
+      """
+
+rule prep_bisulphite_phage_genome:
+    input:
+      phage_fa
+    output:
+      join(phage_genome_path, "Bisulfite_Genome/CT_conversion/genome_mfa.CT_conversion.fa"),
+      join(phage_genome_path, "Bisulfite_Genome/GA_conversion/genome_mfa.GA_conversion.fa"),
+    params:
+      rname="prep_phage_genome",
+      dir=directory(phage_genome_path),
+      batch='--cpus-per-task=16 --partition=norm --gres=lscratch:100 --mem=20g --time=2:00:00',
+    threads:
+      16
+    shell:
+      """
+      module load bismark/0.23.0
+      mkdir -p {params.dir}
+      cd {params.dir}
+      cp reference_genome {params.dir}/genome.fa
+      bismark_genome_preparation --verbose --parallel {threads} {params.dir} #--single_fasta
+      """
+
+rule bismark_phage:
+  input:
+    F1=join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
+    F2=join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
+  output:
+    join(working_dir, "bismark_phage/{samples}_val_1_bismark_bt2_pe.bam"),
+  params:
+    rname="bismark_phage",
+    dir=directory(join(working_dir, "bismark_phage")),
+    genome_dir=directory(phage_genome_path),
+    command="--bowtie2 -N 1 --bam -L 22 --X 1000 --un --ambiguous -p 2 --score_min L,-0.6,-0.6",
+    batch='--cpus-per-task=16 --partition=norm --gres=lscratch:100 --mem=100g --time=10:00:00',
+  threads:
+    16
+  shell:
+    """
+    module load bismark/0.23.0
+    mkdir -p {params.dir}
+    bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
+    """
+
+rule extract_CpG_bismark:
+    input:
+      F1=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),
+    output:
+      B1=join(working_dir, "CpG/{samples}.bedGraph"),
+    params:
+      rname="extract_CpG",
+      dir=directory(join(working_dir, "CpG")),
+      genome=hg38_fa,
+      prefix=join(working_dir,"CpG/{samples}"),
+    threads:
+      16
+    shell:
+      """
+      module load python
+      module load samtools
+      mkdir -p {params.dir}
+      source /data/hillts/conda/etc/profile.d/conda.sh
+      conda activate meth
+      module load samtools/1.9
+      MethylDackel mbias -@ {threads} {params.genome} {input.F1} {params.prefix}
+      MethylDackel extract -o {params.prefix} -@ {threads} {params.genome} {input.F1}
+      """
+
+rule cleanup_bams:
+  input:
+    B2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),
+    G1=join(working_dir, "CpG/{samples}.bedGraph"),
+  output:
+    C2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.cram"),
+  params:
+    rname="cleanup_bams",
+    genome=hg38_fa,
+    FQ1=join(working_dir, "bismarkAlign/{samples}_val_1.fq.gz_unmapped_reads_1.fq.gz"),
+    FQ2=join(working_dir, "bismarkAlign/{samples}_val_2.fq.gz_unmapped_reads_2.fq.gz"),
+    FQ3=join(working_dir, "bismarkAlign/{samples}_val_1.fq.gz_ambiguous_reads_1.fq.gz"),
+    FQ4=join(working_dir, "bismarkAlign/{samples}_val_2.fq.gz_ambiguous_reads_2.fq.gz"),
+  threads:
+    8
+  shell:
+    """
+      module load samtools
+      samtools -h -C -@ {threads} -T {params.genome} {input.B2} > {output.C2}
+      rm {params.FQ1}
+      rm {params.FQ2}
+      rm {params.FQ3}
+      rm {params.FQ4}
+    """
+
+rule multiqc:
+  input:
+    expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.bam"),samples=SAMPLES),
+    expand(join(working_dir, "bismarkAlign/{samples}.bismark_bt2_pe.deduplicated.bam"),samples=SAMPLES),
+  output:
+    "multiqc_report.html",
+  params:
+    dir=working_dir,
+    bis_dir=directory(join(working_dir,"bismarkAlign")),
+    script_dir=join(working_dir,"scripts"),
+  shell:
+    """
+    module load multiqc/1.9 bismark
+    cd {params.bis_dir}
+    bismark2report
+    bismark2summary
+    cd {params.dir}
+    multiqc --ignore '*/.singularity/*' -f --interactive .
+    """
