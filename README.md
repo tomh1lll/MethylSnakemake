@@ -16,25 +16,38 @@ conda deactivate meth
 
 Alter the config.yaml so the rawdata_dir is the absolute path of the directory containing all your fastqs.
 Alter the result_dir so it is the absolute path of the working directory containing your snakemake pipeline, where results will be stored.
+Alter samples in config.yaml to be the absolute path of your samples.txt. Check this is correct. The samples file should have the following tab-delimited format:
+sample  group comp
+S1  GA  GAvsGB
+S2  GA  GAvsGB
+S3  GB  GAvsGB
+S4  GB  GAvsGB
+S5  GC  GAvsGC
+S6  GC  GAvsGC
+S1  GA  GAvsGC
+S2  GA  GAvsGC
 
-Within the Snakefile, check that the absolution path of the samples.txt is correct and that the absolute path of the working directory is correct.
+Within MethylSnake.sh, alter the R variable to the absolute path of your working directory.
 
-Within pipeline_submit.sh, alter the R variable to the absolute path of your working directory.
+The pipeline is divided into 4 steps:
 
-If you want to run the pipeline exclusively using bwa or bismark, within pipeline_submit.sh, change $R/Snakefile on line 57 and 62 to the appropriate Snakefile.
+ * bismark - which performs quality control steps and maps the data using Bismark, before extracting CpG profiles using MethylDackel.
+ * bismark - which performs quality control steps and maps the data using BWA-Meth instead of Bismark, before extracting CpG profiles using MethylDackel.
+ * dmr - which uses the previously generated CpG profiles to identify differentially methylated regions between groups.
+ * dcv - which uses the previously generated CpG to deconvolute the data and identify which tissues samples belong to based on methylation profiles
 
 #### Dry run of the pipeline
 
-To perform a dry run of the pipeline, submit:
+To perform a dry run a step of the pipeline, choose a step (e.g. bismark) and submit:
 
 ```
-sh pipeline_submit.sh npr
+sh MethylSnake.sh bismark npr
 ```
 
 #### Actual run of the pipeline
 
-Once everything seems to work, to perform a full run of the pipeline, submit:
+Once everything seems to work, to perform a full run of a step of the pipeline, submit:
 
 ```
-sbatch --partition=norm --gres=lscratch:500 --time=10-00:00:00 --mail-type=BEGIN,END,FAIL pipeline_submit.sh process
+sbatch --partition=norm --gres=lscratch:500 --time=10-00:00:00 --mail-type=BEGIN,END,FAIL MethylSnake.sh bismark process
 ```
