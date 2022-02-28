@@ -16,9 +16,6 @@ from snakemake.utils import R
 from os import listdir
 import pandas as pd
 
-#configfile: "/data/NHLBIcore/projects/NHLBI-16/MethylSnakemake2/config.yaml"
-#df = pd.read_csv("/data/NHLBIcore/projects/NHLBI-16/MethylSnakemake/samples.txt", header=0, sep='\t')
-
 ##
 ## Locations of working directories and reference genomes for analysis
 ##
