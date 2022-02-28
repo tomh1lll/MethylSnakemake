@@ -337,7 +337,7 @@ rule extract_CpG_bismark:
       module load python
       module load samtools
       mkdir -p {params.dir}
-      source /data/hillts/conda/etc/profile.d/conda.sh
+      source /data/$USER/conda/etc/profile.d/conda.sh
       conda activate meth
       module load samtools/1.9
       MethylDackel mbias -@ {threads} {params.genome} {input.F1} {params.prefix}
