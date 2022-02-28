@@ -221,7 +221,7 @@ rule bwa_meth:
   shell:
     """
       module load bwa samtools/1.9 python
-      source /data/hillts/conda/etc/profile.d/conda.sh
+      source /data/$USER/conda/etc/profile.d/conda.sh
       conda activate meth
       mkdir -p {params.dir}
       module load samtools/1.9
