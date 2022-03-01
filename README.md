@@ -18,23 +18,17 @@ Alter the config.yaml so the rawdata_dir is the absolute path of the directory c
 Alter the result_dir so it is the absolute path of the working directory containing your snakemake pipeline, where results will be stored.
 Alter samples in config.yaml to be the absolute path of your samples.txt. Check this is correct. The samples file should have the following tab-delimited format:
 
+```
 sample  group comp
-
 S1  GA  GAvsGB
-
 S2  GA  GAvsGB
-
 S3  GB  GAvsGB
-
 S4  GB  GAvsGB
-
 S5  GC  GAvsGC
-
 S6  GC  GAvsGC
-
 S1  GA  GAvsGC
-
 S2  GA  GAvsGC
+```
 
 Where GA, GB & GC are the groups these 6 samples belong to.
 
