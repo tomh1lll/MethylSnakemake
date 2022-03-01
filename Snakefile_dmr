@@ -71,13 +71,11 @@ rule All:
       # input for bbseq
       expand(join(working_dir, "phenofiles/{group}.txt"),group=GROUPS),
       #homer files
-      expand(join(working_dir, "homer/{group}_{chr}.homerInput.txt"),group=GROUPS,chr=CHRS),
       expand(join(working_dir, "homer/{group}_{chr}.homerOutput.txt"),group=GROUPS,chr=CHRS),
       expand(join(working_dir, "homer/{group}_{chr}.homerOutput2.txt"),group=GROUPS,chr=CHRS),
-      expand(join(working_dir,"homer/{group}_{chr}.homer.annStats.txt"),group=GROUPS,chr=CHRS),
       # lm methylation sites from bismark alignments
       expand(join(working_dir, "bsseq/{group}_{chr}_betas_pval.bed"),chr=CHRS,group=GROUPS),
-      expand(join(working_dir, "combP/{group}_{chr}.regions-p.bed"),chr=CHRS,group=GROUPS),
+      expand(join(working_dir, "combP/{group}_{chr}.regions-p.bed.gz"),chr=CHRS,group=GROUPS),
       # summary figures of analysis
       expand(join(working_dir,"figs/{group}_manhatten.png"),group=GROUPS),
 
@@ -122,19 +120,17 @@ rule bsseq_bismark:
       Rscript {params.script_dir}/bsseq_lm.R {params.chr} {input.bizfile} {output.bed} {params.sample_prop} {params.cov}
     """
 
-rule combP_bismark:
+rule combP:
   input:
     join(working_dir, "bsseq/{group}_{chr}_betas_pval.bed"),
   output:
-    RP=join(working_dir, "combP/{group}_{chr}.regions-p.bed"),
-    homerInput=join(working_dir, "homer/{group}_{chr}.homerInput.txt"),
+    RP=join(working_dir, "combP/{group}_{chr}.regions-p.bed.gz"),
+    homerInput=temp(join(working_dir, "homer/{group}_{chr}.homerInput.txt")),
     homerOutput=join(working_dir, "homer/{group}_{chr}.homerOutput.txt"),
     homerOutput2=join(working_dir, "homer/{group}_{chr}.homerOutput2.txt"),
-    homerAnn=join(working_dir,"homer/{group}_{chr}.homer.annStats.txt"),
+    homerAnn=temp(join(working_dir,"homer/{group}_{chr}.homer.annStats.txt")),
   params:
-    FD=join(working_dir, "combP/{group}_{chr}.fdr.bed.gz"),
-    RR=join(working_dir, "combP/{group}_{chr}.regions.bed.gz"),
-    rname="CombPbis",
+    rname="CombP",
     groups='{group}_{chr}',
     dir=join(working_dir, "combP"),
     annStat=join(working_dir,"scripts/blank.homer.annStats.txt"),
@@ -150,7 +146,7 @@ rule combP_bismark:
       -p {params.dir}/{params.groups}  \
       --region-filter-p 0.05 \
       --region-filter-n 3 \
-      {input}  ||    comb-p region_p --step 60 -c 5 -p {params.FD} -r {params.RR} > {output.RP}
+      {input} 
       module load homer
       mkdir -p {params.homer_dir}
       cp {params.annStat} {output.homerAnn}
