@@ -69,8 +69,7 @@ rule All:
       expand(join(working_dir, "raw/{samples}.{rn}.fastq.gz"), samples=SAMPLES, rn=RN),
       # Checking data quality:
       expand(join(working_dir, "rawQC/{samples}.{rn}_fastqc.html"), samples=SAMPLES, rn=RN),
-      expand(join(working_dir, "trimQC/{samples}_val_1_fastqc.html"), samples=SAMPLES),
-      expand(join(working_dir, "trimQC/{samples}_val_2_fastqc.html"), samples=SAMPLES),
+      expand(join(working_dir, "trimQC/{samples}.{rn}.pe_fastqc.html"), samples=SAMPLES, rn=RN),
       # Quality trimming output:
       expand(join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),samples=SAMPLES),
       expand(join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),samples=SAMPLES),
@@ -170,30 +169,11 @@ rule trimGalore:
       """
 
 ## Run fastqc on filtered/trimmed data to visually assess quality for R1
-rule trim_fastqc1:
+rule trim_fastqc:
     input:
-      join(working_dir, "trimGalore/{samples}_val_1.fq.gz"),
+      join(working_dir, "trimmed_reads/{samples}.{rn}.pe.fastq.gz"),
     output:
-      join(working_dir, "trimQC/{samples}_val_1_fastqc.html"),
-    params:
-      rname="trim_fastqc",
-      dir=directory(join(working_dir, "trimQC")),
-      batch='--cpus-per-task=2 --mem=8g --time=8:00:00',
-    threads:
-      2
-    shell:
-      """
-      module load fastqc/0.11.9
-      mkdir -p {params.dir}
-      fastqc -o {params.dir} -f fastq --threads {threads} --extract {input}
-      """
-
-## Run fastqc on filtered/trimmed data to visually assess quality for R2
-rule trim_fastqc2:
-    input:
-      join(working_dir, "trimGalore/{samples}_val_2.fq.gz"),
-    output:
-      join(working_dir, "trimQC/{samples}_val_2_fastqc.html"),
+      join(working_dir, "trimQC/{samples}.{rn}.pe_fastqc.html"),
     params:
       rname="trim_fastqc",
       dir=directory(join(working_dir, "trimQC")),
