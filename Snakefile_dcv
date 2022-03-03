@@ -71,7 +71,7 @@ RN = ['R1', 'R2']
 rule All:
     input:
       #Deconvolution output
-      expand(join(working_dir, "deconvolution_CSV/{samples}.meth.csv"),samples=SAMPLES),
+      expand(join(working_dir, "CpG_CSV/{samples}.csv"),samples=SAMPLES),
       expand(join(working_dir, "deconvolution_CSV/{samples}.csv"),samples=SAMPLES),
       expand(join(working_dir, "deconvolution_CSV/{samples}_deconv.log"),samples=SAMPLES),
       join(working_dir, "deconvolution_CSV/total.csv"),
@@ -82,15 +82,17 @@ rule get_CpG:
 	input:
 		join(working_dir, "CpG/{samples}.bedGraph"),
 	output:
-		join(working_dir, "deconvolution_CSV/{samples}.meth.csv"),
+		join(working_dir, "CpG_CSV/{samples}.csv"),
 	params:
 		rname="get_CpG",
 		cutoff=5,
 		script_dir=join(working_dir,"scripts"),
-    		dir=join(working_dir,"deconvolution_CSV"),
+		dir1=join(working_dir,"CpG_CSV"),
+    		dir2=join(working_dir,"deconvolution_CSV"),
 	shell:
 		"""
-		mkdir -p {params.dir}
+		mkdir -p {params.dir1}
+		mkdir -p {params.dir2}
 		module load R
 		Rscript {params.script_dir}/get_methy.R {input} {wildcards.samples} {params.cutoff} {output}
 		"""
@@ -107,7 +109,7 @@ rule get_overlap_meth:
   run:
     df_ref=pd.read_csv(params.map_table,sep='\t',header=None)
     df_ref.columns=['chromosome','start','end','cgid']
-    df_ref=df_ref.loc[(df_ref['chromosome'].isin(CHROMS)),]
+    df_ref=df_ref.loc[(df_ref['chromosome'].isin(CHRS)),]
     dfm=pd.read_csv(input[0])
     dfm=pd.merge(df_ref,dfm,on=['chromosome','start','end'],how='inner')
     dfm=dfm.drop(labels=['chromosome','start','end'],axis=1)
