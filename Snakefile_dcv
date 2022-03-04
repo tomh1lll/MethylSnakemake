@@ -143,7 +143,8 @@ rule merge_tables:
     for f in input[1:]:
       df=pd.read_csv(f)
       dfm=pd.merge(dfm,df,on='cgid',how='outer')
-    dfm.to_csv(output,index=False)
+
+    dfm.to_csv(output[0],index=False)
 
 rule run_deconv_merged:
   input:
