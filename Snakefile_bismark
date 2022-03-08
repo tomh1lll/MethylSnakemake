@@ -229,7 +229,7 @@ rule bismark_align:
       module load bismark/0.23.0 samtools
       mkdir -p {params.dir}
       bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
-      mv {params.outbam} {output}
+      mv {params.outbam} {output.B1}
       samtools flagstat -@ {threads} {output.B1} > {output.B2}
       """
 
