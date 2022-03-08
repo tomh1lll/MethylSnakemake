@@ -163,12 +163,13 @@ rule manhatten:
     MAN=join(working_dir,"figs/{group}_manhatten.png"),
   params:
     dir=join(working_dir, "figs"),
+    bsseq_dir=join(working_dir, "bsseq"),
     rname="manhatten",
     script_dir=join(working_dir,"scripts"),
   shell:
     """
       mkdir -p {params.dir}
-      ls {params.dir}/{wildcards.group}_*_betas_pval.bed > {output.LIST}
+      ls {params.bsseq_dir}/{wildcards.group}_*_betas_pval.bed > {output.LIST}
       module load R
       Rscript {params.script_dir}/bsseq_Manhatten.R {output.LIST} {output.MAN}
     """
