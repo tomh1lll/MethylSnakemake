@@ -222,6 +222,8 @@ rule bismark_align:
       command="--bowtie2 -N 1 --bam -L 22 --X 1000 --un --ambiguous -p 4 --score_min L,-0.6,-0.6",
       batch='--cpus-per-task=16 --partition=norm --gres=lscratch:100 --mem=100g --time=10:00:00',
       outbam=join(working_dir, "bismarkAlign/{samples}_val_1_bismark_bt2_pe.bam"),
+      R1=join(working_dir, "bismarkAlign/{samples}_val_1_bismark_bt2_PE_report.txt"),
+      R2=join(working_dir, "bismarkAlign/{samples}.bismark_bt2_PE_report.txt"),
     threads:
       16
     shell:
@@ -231,6 +233,7 @@ rule bismark_align:
       bismark --multicore {threads} --temp_dir /lscratch/$SLURM_JOBID/ {params.command} --output_dir {params.dir} --genome {params.genome_dir} -1 {input.F1} -2 {input.F2}
       mv {params.outbam} {output.B1}
       samtools flagstat -@ {threads} {output.B1} > {output.B2}
+      mv {params.R1} {params.R2}
       """
 
 rule bismark_dedup:
